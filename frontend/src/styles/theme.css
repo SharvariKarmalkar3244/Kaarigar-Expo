@@ -1,0 +1,134 @@
+@import "tailwindcss";
+
+:root {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+
+  color: #2B2118;
+  background: #F8F3EA;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: #F8F3EA;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+/* Shared palette tokens and the persistent dark theme used across the app. */
+:root {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --app-bg: #171513;
+  --app-surface: #211e1b;
+  --app-surface-muted: #2b2723;
+  --app-text: #f4eee7;
+  --app-muted: #b9afa4;
+  --app-border: #494139;
+}
+
+:root[data-theme="dark"] body {
+  color: var(--app-text);
+  background: var(--app-bg);
+}
+
+:root[data-theme="dark"] [class~="bg-white"],
+:root[data-theme="dark"] [class*="bg-[#FDFBF7]"],
+:root[data-theme="dark"] [class*="bg-[#F8F3EA]"],
+:root[data-theme="dark"] [class*="bg-[#F7F3EB]"],
+:root[data-theme="dark"] [class*="bg-[#FAF7F2]"],
+:root[data-theme="dark"] [class*="bg-[#FAF8F5]"],
+:root[data-theme="dark"] [class*="bg-[#FBF8F3]"],
+:root[data-theme="dark"] [class*="bg-[#FCF9F4]"],
+:root[data-theme="dark"] [class*="bg-[#FFF7F1]"],
+:root[data-theme="dark"] [class*="bg-[#EFE8DC]"] {
+  background-color: var(--app-surface) !important;
+}
+
+:root[data-theme="dark"] [class~="bg-gray-50"],
+:root[data-theme="dark"] [class~="bg-gray-100"],
+:root[data-theme="dark"] [class*="bg-[#e2d8cb]"] {
+  background-color: var(--app-surface-muted) !important;
+}
+
+:root[data-theme="dark"] [class*="text-[#2B2118]"],
+:root[data-theme="dark"] [class~="text-gray-700"],
+:root[data-theme="dark"] [class~="text-gray-800"],
+:root[data-theme="dark"] [class~="text-gray-900"] {
+  color: var(--app-text) !important;
+}
+
+:root[data-theme="dark"] [class*="text-[#5B6B82]"],
+:root[data-theme="dark"] [class~="text-gray-400"],
+:root[data-theme="dark"] [class~="text-gray-500"],
+:root[data-theme="dark"] [class~="text-gray-600"] {
+  color: var(--app-muted) !important;
+}
+
+:root[data-theme="dark"] [class*="border-[#D8C9B5]"],
+:root[data-theme="dark"] [class*="border-[#D8CDBE]"],
+:root[data-theme="dark"] [class*="border-[#E2D6C7]"],
+:root[data-theme="dark"] [class*="border-[#E2D8CB]"],
+:root[data-theme="dark"] [class*="border-[#E8E1D5]"],
+:root[data-theme="dark"] [class*="border-[#F3EFE6]"],
+:root[data-theme="dark"] [class~="border-gray-100"],
+:root[data-theme="dark"] [class~="border-gray-200"] {
+  border-color: var(--app-border) !important;
+}
+
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] select {
+  color: var(--app-text);
+  background-color: var(--app-surface);
+  border-color: var(--app-border);
+}
+
+:root[data-theme="dark"] .account-control,
+:root[data-theme="dark"] .account-popover,
+:root[data-theme="dark"] .account-card {
+  color: var(--app-text);
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+
+:root[data-theme="dark"] .account-menu-item:hover {
+  background: var(--app-surface-muted);
+}
+
+:root[data-theme="dark"] .account-page {
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
+:root[data-theme="dark"] .account-field {
+  background: var(--app-surface-muted);
+}

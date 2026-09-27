@@ -1,0 +1,59 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "frontend": {
+      "root": "frontend/",
+      "framework": "vite",
+      "rewrites": [
+        { "source": "/(.*)", "destination": "/index.html" }
+      ]
+    },
+    "api_gateway": {
+      "root": "backend/",
+      "runtime": "container",
+      "entrypoint": "Dockerfile.gateway.vercel",
+      "bindings": [
+        { "type": "service", "service": "auth_service", "format": "url", "env": "AUTH_SERVICE_URL" },
+        { "type": "service", "service": "event_service", "format": "url", "env": "EVENT_SERVICE_URL" },
+        { "type": "service", "service": "kaarigar_service", "format": "url", "env": "KAARIGAR_SERVICE_URL" },
+        { "type": "service", "service": "visitor_service", "format": "url", "env": "VISITOR_SERVICE_URL" }
+      ]
+    },
+    "auth_service": {
+      "root": "backend/",
+      "runtime": "container",
+      "entrypoint": "Dockerfile.auth.vercel"
+    },
+    "event_service": {
+      "root": "backend/",
+      "runtime": "container",
+      "entrypoint": "Dockerfile.event.vercel",
+      "bindings": [
+        { "type": "service", "service": "auth_service", "format": "url", "env": "AUTH_SERVICE_URL" },
+        { "type": "service", "service": "kaarigar_service", "format": "url", "env": "KAARIGAR_SERVICE_URL" },
+        { "type": "service", "service": "visitor_service", "format": "url", "env": "VISITOR_SERVICE_URL" }
+      ]
+    },
+    "kaarigar_service": {
+      "root": "backend/",
+      "runtime": "container",
+      "entrypoint": "Dockerfile.kaarigar.vercel",
+      "bindings": [
+        { "type": "service", "service": "auth_service", "format": "url", "env": "AUTH_SERVICE_URL" },
+        { "type": "service", "service": "event_service", "format": "url", "env": "EVENT_SERVICE_URL" }
+      ]
+    },
+    "visitor_service": {
+      "root": "backend/",
+      "runtime": "container",
+      "entrypoint": "Dockerfile.visitor.vercel",
+      "bindings": [
+        { "type": "service", "service": "event_service", "format": "url", "env": "EVENT_SERVICE_URL" }
+      ]
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": { "service": "api_gateway" } },
+    { "source": "/(.*)", "destination": { "service": "frontend" } }
+  ]
+}
