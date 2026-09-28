@@ -45,10 +45,7 @@
     "visitor_service": {
       "root": "backend/",
       "runtime": "container",
-      "entrypoint": "visitor-service/Dockerfile.vercel",
-      "bindings": [
-        { "type": "service", "service": "event_service", "format": "url", "env": "EVENT_SERVICE_URL" }
-      ]
+      "entrypoint": "visitor-service/Dockerfile.vercel"
     }
   },
   "rewrites": [
