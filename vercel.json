@@ -8,48 +8,76 @@
         { "source": "/(.*)", "destination": "/index.html" }
       ]
     },
+
     "api_gateway": {
       "root": "backend/",
       "runtime": "container",
       "entrypoint": "api-gateway/Dockerfile.vercel",
       "bindings": [
-        { "type": "service", "service": "auth_service", "format": "url", "env": "AUTH_SERVICE_URL" },
-        { "type": "service", "service": "event_service", "format": "url", "env": "EVENT_SERVICE_URL" },
-        { "type": "service", "service": "kaarigar_service", "format": "url", "env": "KAARIGAR_SERVICE_URL" },
-        { "type": "service", "service": "visitor_service", "format": "url", "env": "VISITOR_SERVICE_URL" }
+        {
+          "type": "service",
+          "service": "auth_service",
+          "format": "url",
+          "env": "AUTH_SERVICE_URL"
+        },
+        {
+          "type": "service",
+          "service": "event_service",
+          "format": "url",
+          "env": "EVENT_SERVICE_URL"
+        },
+        {
+          "type": "service",
+          "service": "kaarigar_service",
+          "format": "url",
+          "env": "KAARIGAR_SERVICE_URL"
+        },
+        {
+          "type": "service",
+          "service": "visitor_service",
+          "format": "url",
+          "env": "VISITOR_SERVICE_URL"
+        }
       ]
     },
+
     "auth_service": {
       "root": "backend/",
       "runtime": "container",
       "entrypoint": "auth-service/Dockerfile.vercel"
     },
+
     "event_service": {
       "root": "backend/",
       "runtime": "container",
-      "entrypoint": "event-service/Dockerfile.vercel",
-      "bindings": [
-        { "type": "service", "service": "auth_service", "format": "url", "env": "AUTH_SERVICE_URL" },
-        { "type": "service", "service": "kaarigar_service", "format": "url", "env": "KAARIGAR_SERVICE_URL" },
-        { "type": "service", "service": "visitor_service", "format": "url", "env": "VISITOR_SERVICE_URL" }
-      ]
+      "entrypoint": "event-service/Dockerfile.vercel"
     },
+
     "kaarigar_service": {
       "root": "backend/",
       "runtime": "container",
-      "entrypoint": "kaarigar-service/Dockerfile.vercel",
-      "bindings": [
-        { "type": "service", "service": "auth_service", "format": "url", "env": "AUTH_SERVICE_URL" }
-      ]
+      "entrypoint": "kaarigar-service/Dockerfile.vercel"
     },
+
     "visitor_service": {
       "root": "backend/",
       "runtime": "container",
       "entrypoint": "visitor-service/Dockerfile.vercel"
     }
   },
+
   "rewrites": [
-    { "source": "/api/(.*)", "destination": { "service": "api_gateway" } },
-    { "source": "/(.*)", "destination": { "service": "frontend" } }
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "api_gateway"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "frontend"
+      }
+    }
   ]
 }
