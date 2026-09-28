@@ -11,7 +11,7 @@
     "api_gateway": {
       "root": "backend/",
       "runtime": "container",
-      "entrypoint": "Dockerfile.gateway.vercel",
+      "entrypoint": "api-gateway/Dockerfile.vercel",
       "bindings": [
         { "type": "service", "service": "auth_service", "format": "url", "env": "AUTH_SERVICE_URL" },
         { "type": "service", "service": "event_service", "format": "url", "env": "EVENT_SERVICE_URL" },
@@ -22,12 +22,12 @@
     "auth_service": {
       "root": "backend/",
       "runtime": "container",
-      "entrypoint": "Dockerfile.auth.vercel"
+      "entrypoint": "auth-service/Dockerfile.vercel"
     },
     "event_service": {
       "root": "backend/",
       "runtime": "container",
-      "entrypoint": "Dockerfile.event.vercel",
+      "entrypoint": "event-service/Dockerfile.vercel",
       "bindings": [
         { "type": "service", "service": "auth_service", "format": "url", "env": "AUTH_SERVICE_URL" },
         { "type": "service", "service": "kaarigar_service", "format": "url", "env": "KAARIGAR_SERVICE_URL" },
@@ -37,7 +37,7 @@
     "kaarigar_service": {
       "root": "backend/",
       "runtime": "container",
-      "entrypoint": "Dockerfile.kaarigar.vercel",
+      "entrypoint": "kaarigar-service/Dockerfile.vercel",
       "bindings": [
         { "type": "service", "service": "auth_service", "format": "url", "env": "AUTH_SERVICE_URL" },
         { "type": "service", "service": "event_service", "format": "url", "env": "EVENT_SERVICE_URL" }
@@ -46,7 +46,7 @@
     "visitor_service": {
       "root": "backend/",
       "runtime": "container",
-      "entrypoint": "Dockerfile.visitor.vercel",
+      "entrypoint": "visitor-service/Dockerfile.vercel",
       "bindings": [
         { "type": "service", "service": "event_service", "format": "url", "env": "EVENT_SERVICE_URL" }
       ]

@@ -4,8 +4,8 @@ The repository is prepared for a Vercel Services deployment: the Vite frontend a
 
 ## Required before the first deployment
 
-1. Put the whole project in one Git repository with the repository root at this folder, or deploy this folder with the Vercel CLI. The current checkout has no Git repository at the project root; only `backend/` contains Git metadata, so importing that nested repository alone will omit the frontend and root Vercel configuration.
-2. In Vercel, create a project from the root repository and select **Services** as the framework. Vercel Services and containerized services must be enabled for the account/project.
+1. Import the GitHub repository `SharvariKarmalkar3244/Kaarigar-Expo` as a Vercel project, keeping the repository root as the project root. The Vite app, backend services, Dockerfiles, and root `vercel.json` are all in this repository.
+2. Select **Services** as the framework. Vercel Services and containerized services must be enabled for the account/project.
 3. Create PostgreSQL databases for the four services. They can be four databases on one managed PostgreSQL instance. Copy the JDBC-form connection URL, username, and password for each into Vercel's Production and Preview environment variables.
 4. Add these environment variables. Keep their values in Vercel's settings; do not commit them to this repository.
 
@@ -48,4 +48,4 @@ The database credentials, JWT signing key, and internal service secret are requi
 
 ## Deploy from this computer
 
-Install the Vercel CLI, sign in to the intended Vercel account, then run `vercel` from this project root to link it and create a preview. After setting the environment variables and checking the preview, run `vercel --prod` for production. The CLI deployment is not started automatically because this workspace has no Vercel CLI login, and the project has no root Git repository or Vercel project link.
+Alternatively, install the Vercel CLI and sign in to the intended Vercel account, then run `vercel` from this project root to link it and create a preview. After setting the environment variables and checking the preview, run `vercel --prod` for production. This checkout is a root Git repository, but it has no Vercel project link or authenticated Vercel CLI session yet.
