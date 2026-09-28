@@ -39,8 +39,7 @@
       "runtime": "container",
       "entrypoint": "kaarigar-service/Dockerfile.vercel",
       "bindings": [
-        { "type": "service", "service": "auth_service", "format": "url", "env": "AUTH_SERVICE_URL" },
-        { "type": "service", "service": "event_service", "format": "url", "env": "EVENT_SERVICE_URL" }
+        { "type": "service", "service": "auth_service", "format": "url", "env": "AUTH_SERVICE_URL" }
       ]
     },
     "visitor_service": {
