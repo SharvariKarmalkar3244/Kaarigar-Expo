@@ -6,12 +6,16 @@ import com.kaarigarexpo.auth_service.dto.RegisterRequest;
 import com.kaarigarexpo.auth_service.dto.RegisterResponse;
 import com.kaarigarexpo.auth_service.dto.ActionTokenRequest;
 import com.kaarigarexpo.auth_service.dto.PasswordResetRequest;
+import com.kaarigarexpo.auth_service.entity.Role;
 import com.kaarigarexpo.auth_service.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import io.jsonwebtoken.Claims;
 import java.util.Map;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -41,6 +45,23 @@ public class AuthController {
             @Valid @RequestBody LoginRequest request
     ) {
         return authService.login(request);
+    }
+
+    @GetMapping("/oauth2/google/start")
+    public void startGoogleRegistration(
+            @RequestParam(required = false) String role,
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) throws IOException {
+        String normalizedRole = role == null || role.isBlank() ? "VISITOR" : role.trim().toUpperCase();
+        if (!normalizedRole.equals("VISITOR") && !normalizedRole.equals("KAARIGAR")) {
+            response.sendError(HttpStatus.FORBIDDEN.value(), "Public Google registration is limited to visitors and kaarigars");
+            return;
+        }
+        Role requestedRole = Role.valueOf(normalizedRole);
+
+        request.getSession(true).setAttribute("google-registration-role", requestedRole.name());
+        response.sendRedirect("/oauth2/authorization/google");
     }
 
     @PostMapping("/verify-email")

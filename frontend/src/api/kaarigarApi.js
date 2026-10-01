@@ -26,9 +26,10 @@ export const updateProfile = async (data) => {
   return response.data;
 };
 
-export const getAllKaarigars = async () => {
+export const getAllKaarigars = async (params = {}) => {
   const response = await apiClient.get(
-    "/api/kaarigars"
+    "/api/kaarigars",
+    { params }
   );
 
   return response.data;
@@ -51,9 +52,10 @@ export const getMyApplications = async () => {
   return response.data;
 };
 
-export const getPendingApplications = async () => {
+export const getPendingApplications = async (params = {}) => {
   const response = await apiClient.get(
-    "/api/admin/applications/pending"
+    "/api/admin/applications/pending",
+    { params }
   );
 
   return response.data;

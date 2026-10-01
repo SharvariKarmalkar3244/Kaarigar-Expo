@@ -10,6 +10,8 @@ import {
   RefreshCw,
   ArrowLeft,
   Download,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -27,25 +29,27 @@ export default function AdminKaarigars() {
 
   const [error, setError] =
     useState("");
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const [exporting, setExporting] = useState(false);
 
-  const loadKaarigars = async () => {
+  const loadKaarigars = async (requestedPage = page) => {
     try {
       setLoading(true);
       setError("");
 
       const response =
-        await getAllKaarigars();
-
-      console.log(
-        "All Kaarigars:",
-        response
-      );
+        await getAllKaarigars({ page: requestedPage, size: 20 });
 
       const data = Array.isArray(response)
         ? response
         : response?.content || [];
 
       setKaarigars(data);
+      setPage(response?.number ?? requestedPage);
+      setTotalPages(response?.totalPages ?? (data.length ? 1 : 0));
+      setTotalElements(response?.totalElements ?? data.length);
     } catch (err) {
       console.error(
         "Failed to load Kaarigars:",
@@ -61,22 +65,39 @@ export default function AdminKaarigars() {
     }
   };
 
-  const exportKaarigars = () => exportExcel({
-    fileName: "kaarigar-profiles",
-    sheetName: "Kaarigars",
-    columns: [
-      { label: "Profile ID", value: "id" },
-      { label: "User ID", value: "userId" },
-      { label: "Name", value: (row) => row.name || row.fullName || row.user?.name },
-      { label: "Email", value: (row) => row.email || row.user?.email },
-      { label: "Phone", value: (row) => row.phone || row.mobile || row.phoneNumber },
-      { label: "Location", value: (row) => row.location || row.city },
-      { label: "Craft", value: (row) => row.craft || row.craftType || row.specialization },
-      { label: "Description", value: "description" },
-      { label: "Registered", value: "createdAt" },
-    ],
-    rows: kaarigars,
-  });
+  const exportKaarigars = async () => {
+    try {
+      setExporting(true);
+      setError("");
+      const firstPage = await getAllKaarigars({ page: 0, size: 100 });
+      const allRows = Array.isArray(firstPage) ? firstPage : [...(firstPage?.content || [])];
+      const pageCount = firstPage?.totalPages || 1;
+      for (let pageIndex = 1; pageIndex < pageCount; pageIndex += 1) {
+        const nextPage = await getAllKaarigars({ page: pageIndex, size: 100 });
+        allRows.push(...(Array.isArray(nextPage) ? nextPage : nextPage?.content || []));
+      }
+      exportExcel({
+        fileName: "kaarigar-profiles",
+        sheetName: "Kaarigars",
+        columns: [
+          { label: "Profile ID", value: "id" },
+          { label: "User ID", value: "userId" },
+          { label: "Name", value: (row) => row.name || row.fullName || row.user?.name },
+          { label: "Email", value: (row) => row.email || row.user?.email },
+          { label: "Phone", value: (row) => row.phone || row.mobile || row.phoneNumber },
+          { label: "Location", value: (row) => row.location || row.city },
+          { label: "Craft", value: (row) => row.craft || row.craftType || row.specialization },
+          { label: "Description", value: "description" },
+          { label: "Registered", value: "createdAt" },
+        ],
+        rows: allRows,
+      });
+    } catch (err) {
+      setError(err.response?.data?.message || "Unable to export Kaarigars.");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   useEffect(() => {
     loadKaarigars();
@@ -104,8 +125,8 @@ export default function AdminKaarigars() {
           </div>
 
           <div className="flex gap-2">
-            <button onClick={exportKaarigars} className="flex items-center gap-2 rounded-lg border border-[#B4532D] bg-white px-4 py-2 text-sm font-medium text-[#B4532D] hover:bg-[#FFF7F1]">
-              <Download size={16} /> Export Excel
+            <button onClick={exportKaarigars} disabled={exporting} className="flex items-center gap-2 rounded-lg border border-[#B4532D] bg-white px-4 py-2 text-sm font-medium text-[#B4532D] hover:bg-[#FFF7F1] disabled:opacity-60">
+              <Download size={16} /> {exporting ? "Exporting..." : "Export Excel"}
             </button>
             <button
               onClick={loadKaarigars}
@@ -288,6 +309,16 @@ export default function AdminKaarigars() {
             </div>
           )}
         </div>
+        {!loading && totalPages > 1 && (
+          <div className="mt-4 flex items-center justify-between rounded-xl border border-[#E2D8CB] bg-white px-4 py-3 text-sm text-gray-600">
+            <span>Showing {page * 20 + 1}–{Math.min((page + 1) * 20, totalElements)} of {totalElements}</span>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => loadKaarigars(page - 1)} disabled={page === 0} className="inline-flex items-center gap-1 rounded-lg border px-3 py-2 disabled:opacity-50"><ChevronLeft size={16} /> Previous</button>
+              <span className="px-2 py-2">Page {page + 1} of {totalPages}</span>
+              <button type="button" onClick={() => loadKaarigars(page + 1)} disabled={page + 1 >= totalPages} className="inline-flex items-center gap-1 rounded-lg border px-3 py-2 disabled:opacity-50">Next <ChevronRight size={16} /></button>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

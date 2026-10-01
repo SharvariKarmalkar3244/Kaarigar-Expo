@@ -22,16 +22,20 @@ export default function AdminEventParticipants() {
     try {
       setLoading(true);
       setError("");
-      const [eventData, participantsData, profilesData] = await Promise.all([
+      const [eventData, participantsData, firstProfilesPage] = await Promise.all([
         getEventById(id),
         getEventParticipants(id),
-        getAllKaarigars(),
+        getAllKaarigars({ page: 0, size: 100 }),
       ]);
       setEvent(eventData);
       const list = Array.isArray(participantsData)
         ? participantsData
         : participantsData?.content || [];
-      const profiles = Array.isArray(profilesData) ? profilesData : profilesData?.content || [];
+      const profiles = Array.isArray(firstProfilesPage) ? firstProfilesPage : [...(firstProfilesPage?.content || [])];
+      for (let page = 1; page < (firstProfilesPage?.totalPages || 1); page += 1) {
+        const profilePage = await getAllKaarigars({ page, size: 100 });
+        profiles.push(...(Array.isArray(profilePage) ? profilePage : profilePage?.content || []));
+      }
       setParticipants(list.map((item) => {
         const userId = item.userId || item.kaarigarId;
         const profile = profiles.find((entry) => String(entry.userId) === String(userId));

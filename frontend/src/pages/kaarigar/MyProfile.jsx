@@ -46,7 +46,7 @@ export default function MyProfile() {
     setError("");
     setSuccess("");
     try {
-      const photoUrl = photoFile ? await uploadImage(photoFile) : form.photoUrl.trim();
+      const photoUrl = photoFile ? await uploadImage(photoFile, "profile") : form.photoUrl.trim();
       const newWorkImageUrls = await Promise.all(workFiles.map(uploadImage));
       const payload = {
         ...form,

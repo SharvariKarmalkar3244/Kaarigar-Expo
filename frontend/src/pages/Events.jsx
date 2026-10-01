@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Search,
@@ -19,6 +19,10 @@ export default function Events() {
   const [search, setSearch] = useState("");
   const [submittedSearch, setSubmittedSearch] = useState("");
   const [city, setCity] = useState("ALL");
+  const [craftType, setCraftType] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [availableOnly, setAvailableOnly] = useState(false);
   const [status, setStatus] = useState("UPCOMING");
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -34,7 +38,17 @@ export default function Events() {
       setLoading(true);
       setError("");
 
-      const data = await getEvents({ page: pageNumber, size: 9, status, city: city === "ALL" ? undefined : city, q: submittedSearch || undefined });
+      const data = await getEvents({
+        page: pageNumber,
+        size: 9,
+        status,
+        city: city === "ALL" ? undefined : city,
+        craftType: craftType.trim() || undefined,
+        fromDate: fromDate || undefined,
+        toDate: toDate || undefined,
+        availableOnly,
+        q: submittedSearch || undefined,
+      });
 
       if (Array.isArray(data?.content)) {
         setEvents(data.content);
@@ -59,24 +73,16 @@ export default function Events() {
     } finally {
       setLoading(false);
     }
-  }, [city, page, status, submittedSearch]);
+  }, [availableOnly, city, craftType, fromDate, page, status, submittedSearch, toDate]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => loadEvents(page), 0);
+    const timer = window.setTimeout(() => loadEvents(page), 250);
     return () => window.clearTimeout(timer);
   }, [loadEvents, page]);
 
   // --------------------------------------------------
   // Cities List
   // --------------------------------------------------
-  const cities = useMemo(() => {
-    const uniqueCities = events
-      .map((event) => event.city || event.location)
-      .filter(Boolean);
-
-    return ["ALL", ...new Set(uniqueCities)];
-  }, [events]);
-
   // --------------------------------------------------
   // Filter Events
   // --------------------------------------------------
@@ -155,20 +161,40 @@ export default function Events() {
 
           {/* Filters Bar */}
           <div className="mt-4 flex flex-wrap items-center justify-center gap-4 text-xs font-medium text-gray-600">
-            <div className="flex items-center gap-2">
-              <span>Filter City:</span>
-              <select
-                value={city}
-                onChange={(e) => { setCity(e.target.value); setPage(0); }}
-                className="rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs focus:outline-none"
-              >
-                {cities.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <label className="flex items-center gap-2">
+              <span>Location:</span>
+              <input
+                type="text"
+                value={city === "ALL" ? "" : city}
+                onChange={(e) => { setCity(e.target.value.trim() ? e.target.value : "ALL"); setPage(0); }}
+                placeholder="City or venue"
+                className="w-36 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs focus:outline-none"
+              />
+            </label>
+            <label className="flex items-center gap-2">
+              <span>Craft:</span>
+              <input
+                type="text"
+                value={craftType}
+                onChange={(e) => { setCraftType(e.target.value); setPage(0); }}
+                placeholder="Pottery, jewelry..."
+                className="w-36 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs focus:outline-none"
+              />
+            </label>
+            <label className="flex items-center gap-2">
+              <span>From:</span>
+              <input type="date" value={fromDate} onChange={(e) => { setFromDate(e.target.value); setPage(0); }}
+                className="rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs focus:outline-none" />
+            </label>
+            <label className="flex items-center gap-2">
+              <span>To:</span>
+              <input type="date" value={toDate} onChange={(e) => { setToDate(e.target.value); setPage(0); }}
+                className="rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs focus:outline-none" />
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={availableOnly} onChange={(e) => { setAvailableOnly(e.target.checked); setPage(0); }} />
+              Seats available
+            </label>
 
             <div className="flex items-center gap-2">
               <span>Status:</span>

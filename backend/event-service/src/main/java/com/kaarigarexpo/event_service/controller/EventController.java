@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/events")
@@ -68,13 +69,20 @@ public class EventController {
             @RequestParam(defaultValue = "9") int size,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String city,
-            @RequestParam(required = false, name = "q") String query
+            @RequestParam(required = false, name = "q") String query,
+            @RequestParam(required = false) LocalDate fromDate,
+            @RequestParam(required = false) LocalDate toDate,
+            @RequestParam(required = false) String craftType,
+            @RequestParam(defaultValue = "false") boolean availableOnly
     ) {
         int safePage = Math.max(0, page);
         int safeSize = Math.min(Math.max(size, 1), 50);
         EventStatus eventStatus = status == null || status.isBlank() || "ALL".equalsIgnoreCase(status)
                 ? null : EventStatus.valueOf(status.trim().toUpperCase());
-        return eventService.getEvents(eventStatus, city, query,
+        if (fromDate != null && toDate != null && fromDate.isAfter(toDate)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Start date filter must be before end date filter");
+        }
+        return eventService.getEvents(eventStatus, city, query, fromDate, toDate, craftType, availableOnly,
                 PageRequest.of(safePage, safeSize, Sort.by("startDate").ascending()));
     }
 

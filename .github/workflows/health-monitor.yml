@@ -1,0 +1,30 @@
+name: Production health monitor
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check public service health routes
+        env:
+          APP_BASE_URL: ${{ vars.APP_BASE_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "$APP_BASE_URL" ]]; then
+            echo "Set the APP_BASE_URL repository variable to the deployed site origin." >&2
+            exit 1
+          fi
+          base="${APP_BASE_URL%/}"
+          for path in /api/auth/health /api/events/health /api/kaarigars/health /api/visitors/health; do
+            echo "Checking $path"
+            curl --fail --silent --show-error --max-time 20 --retry 2 --retry-delay 5 "$base$path"
+            echo
+          done

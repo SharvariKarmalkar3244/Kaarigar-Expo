@@ -11,6 +11,7 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
+import com.kaarigarexpo.auth_service.entity.Role;
 
 import java.io.IOException;
 
@@ -35,10 +36,27 @@ public class GoogleOAuthSuccessHandler implements AuthenticationSuccessHandler {
             return;
         }
 
+        String googleSubject = principal.getAttribute("sub");
+        String email = principal.getAttribute("email");
+        if (googleSubject == null || googleSubject.isBlank() || email == null || email.isBlank()) {
+            response.sendRedirect(frontendUrl + "/register?oauth=failed");
+            return;
+        }
+
+        var oauthSession = request.getSession(false);
+        String roleValue = oauthSession == null
+                ? null
+                : (String) oauthSession.getAttribute("google-registration-role");
+        if (oauthSession != null) {
+            oauthSession.removeAttribute("google-registration-role");
+        }
+        Role requestedRole = "KAARIGAR".equalsIgnoreCase(roleValue) ? Role.KAARIGAR : Role.VISITOR;
+
         LoginResponse session = authService.loginOrRegisterGoogle(
-                principal.getAttribute("sub"),
-                principal.getAttribute("email"),
-                principal.getAttribute("name"));
+                googleSubject,
+                email,
+                principal.getAttribute("name"),
+                requestedRole);
         response.sendRedirect(frontendUrl + "/oauth/callback#token=" + session.token());
     }
 }

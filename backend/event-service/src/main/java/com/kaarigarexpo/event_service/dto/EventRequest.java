@@ -26,6 +26,8 @@ public record EventRequest(
 
         String city,
 
+        String craftType,
+
         String imageUrl,
 
         @NotNull(message = "Capacity is required")

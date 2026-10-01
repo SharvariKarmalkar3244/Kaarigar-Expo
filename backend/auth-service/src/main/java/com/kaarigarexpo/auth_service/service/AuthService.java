@@ -46,8 +46,13 @@ public class AuthService {
 
     public RegisterResponse register(RegisterRequest request) {
 
-        if (userRepository.existsByEmail(request.email())) {
-            throw new RuntimeException("Email already registered");
+        if (request.role() != Role.VISITOR && request.role() != Role.KAARIGAR) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Public registration is limited to visitors and kaarigars");
+        }
+
+        String normalizedEmail = request.email().trim().toLowerCase();
+        if (userRepository.existsByEmail(normalizedEmail)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered");
         }
 
         String hashedPassword =
@@ -55,7 +60,7 @@ public class AuthService {
 
         User user = new User(
                 request.name(),
-                request.email(),
+                normalizedEmail,
                 hashedPassword,
                 request.role()
         );
@@ -103,7 +108,7 @@ public class AuthService {
     }
 
     @Transactional
-    public LoginResponse loginOrRegisterGoogle(String googleSubject, String email, String name) {
+    public LoginResponse loginOrRegisterGoogle(String googleSubject, String email, String name, Role requestedRole) {
         String normalizedEmail = email.trim().toLowerCase();
         User user = userRepository.findByGoogleSubject(googleSubject)
                 .orElseGet(() -> userRepository.findByEmail(normalizedEmail)
@@ -113,15 +118,20 @@ public class AuthService {
                                 throw new IllegalArgumentException("This email is linked to another Google account");
                             }
                             existing.setGoogleSubject(googleSubject);
+                            existing.setEmailVerified(true);
                             return userRepository.save(existing);
                         })
-                        .orElseGet(() -> userRepository.save(new User(
-                                name == null || name.isBlank() ? normalizedEmail : name,
-                                normalizedEmail,
-                                null,
-                                Role.VISITOR,
-                                googleSubject
-                        ))));
+                        .orElseGet(() -> {
+                            User created = new User(
+                                    name == null || name.isBlank() ? normalizedEmail : name,
+                                    normalizedEmail,
+                                    null,
+                                    requestedRole == Role.KAARIGAR ? Role.KAARIGAR : Role.VISITOR,
+                                    googleSubject
+                            );
+                            created.setEmailVerified(true);
+                            return userRepository.save(created);
+                        }));
         String token = jwtService.generateToken(user);
         return new LoginResponse(token, user.getId(), user.getName(), user.getEmail(), user.getRole().name(), user.isEmailVerified());
     }

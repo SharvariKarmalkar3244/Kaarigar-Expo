@@ -1,6 +1,6 @@
 # Deploy Kaarigar Expo to Vercel
 
-The repository is prepared for a Vercel Services deployment: the Vite frontend and each Spring Boot HTTP service build as separate services in one Vercel project. The Eureka server is intentionally not deployed because Vercel service bindings provide the service URLs directly. Uploaded profile, product, and event images are stored in the Kaarigar PostgreSQL database so they survive container restarts and scale-out.
+The repository is prepared for a Vercel Services deployment: the Vite frontend and each Spring Boot HTTP service build as separate services in one Vercel project. The Eureka server is intentionally not deployed because Vercel service bindings provide the service URLs directly. Profile, product, and event images are uploaded directly to Vercel Blob; database records keep their public image URLs.
 
 ## Required before the first deployment
 
@@ -40,6 +40,8 @@ The repository is prepared for a Vercel Services deployment: the Vite frontend a
 | `S3_ACCESS_KEY` / `S3_SECRET_KEY` | Optional when the runtime has an IAM role; otherwise provide storage credentials |
 | `S3_ENDPOINT` | Optional endpoint for an S3-compatible provider |
 | `CORS_ALLOWED_ORIGIN_PATTERN` | Optional; defaults to `https://*.vercel.app`. Set this to the production origin pattern if using a custom domain. |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob read/write token. Keep it in the frontend service's server-side environment; it is never exposed to browser code. |
+| `VITE_MEDIA_STORAGE` | Set to `vercel-blob` in the frontend build environment to enable direct browser-to-Blob uploads. |
 
 Generate secrets locally rather than putting them in source files. For example, Node.js can print a 48-byte Base64 value with `node -e "console.log(require('node:crypto').randomBytes(48).toString('base64'))"`.
 
@@ -47,13 +49,15 @@ The Dockerfiles select the `vercel` Spring profile. Vercel injects the backend s
 
 ## Database and media notes
 
-Spring Data creates/updates the tables using the existing `ddl-auto=update` setting, including `media_assets` for uploaded images. Existing data in a local PostgreSQL instance is not copied automatically: restore/import it into the hosted databases if you want to retain local accounts, events, applications, registrations, and tickets. Images that only exist in a local `uploads/` directory also need to be uploaded again; new uploads are stored in PostgreSQL.
+Spring Data creates/updates the tables using the existing `ddl-auto=update` setting, including `media_assets` for images stored through the local/fallback media API. Existing data in a local PostgreSQL instance is not copied automatically: restore/import it into the hosted databases if you want to retain local accounts, events, applications, registrations, and tickets. Images that only exist in a local `uploads/` directory also need to be uploaded again. On Vercel, new uploads use Blob and only their public URLs are stored in application records.
 
-Image uploads are capped at 4 MB because Vercel Functions limit request and response bodies to 4.5 MB. The frontend validates this before sending the upload.
+Create a **public** Vercel Blob store because event, profile, and artisan portfolio images are displayed publicly. The frontend uses an authenticated Vercel Function to issue short-lived upload tokens, and the browser uploads image bytes directly to Blob. The function checks the user's JWT against the bound Auth service, restricts image type, account role, user-specific path, and 4 MB maximum size. Set `BLOB_READ_WRITE_TOKEN` and `VITE_MEDIA_STORAGE=vercel-blob` in Vercel. Local development keeps using the existing Kaarigar media API unless `VITE_MEDIA_STORAGE` is explicitly set.
+
+Previously uploaded database media remains available at its existing API URL. New Blob uploads return Blob URLs which are stored in event/profile records.
 
 The database credentials, JWT signing key, and internal service secret are required. The Vercel Spring profile does not fall back to the development credentials in `application.properties`.
 
-For Google registration, create a Google OAuth 2.0 **Web application** client and add the exact `GOOGLE_REDIRECT_URI` as an authorized redirect URI. For local development, use `http://localhost:8080/login/oauth2/code/google` and set `FRONTEND_URL` to `http://localhost:5173`. OAuth-created accounts default to the Visitor role; Kaarigar accounts continue to use the role-specific registration form.
+For Google registration, create a Google OAuth 2.0 **Web application** client and add the exact `GOOGLE_REDIRECT_URI` as an authorized redirect URI. For local development, use `http://localhost:8081/login/oauth2/code/google` and set `FRONTEND_URL` to `http://localhost:5173`. OAuth-created accounts default to the Visitor role; Kaarigar accounts continue to use the role-specific registration form.
 
 ## Vercel project settings
 

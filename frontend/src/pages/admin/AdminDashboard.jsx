@@ -23,7 +23,7 @@ import {
 
 export default function AdminDashboard() {
   const [events, setEvents] = useState([]);
-  const [kaarigars, setKaarigars] = useState([]);
+  const [kaarigarCount, setKaarigarCount] = useState(0);
   const [applications, setApplications] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [auditRows, setAuditRows] = useState([]);
@@ -44,8 +44,8 @@ export default function AdminDashboard() {
         auditResponse,
       ] = await Promise.all([
         getEvents({ page: 0, size: 9 }),
-        getAllKaarigars(),
-        getPendingApplications(),
+        getAllKaarigars({ page: 0, size: 1 }),
+        getPendingApplications({ page: 0, size: 5 }),
         getEventAnalytics(),
         getAuditLog(),
       ]);
@@ -59,10 +59,8 @@ export default function AdminDashboard() {
           : eventsResponse?.content || []
       );
 
-      setKaarigars(
-        Array.isArray(kaarigarsResponse)
-          ? kaarigarsResponse
-          : kaarigarsResponse?.content || []
+      setKaarigarCount(
+        kaarigarsResponse?.totalElements ?? kaarigarsResponse?.length ?? 0
       );
 
       setApplications(
@@ -197,7 +195,7 @@ export default function AdminDashboard() {
         )}
 
         {/* Statistics */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <StatCard
             title="Total Events"
             value={analytics?.totalEvents ?? events.length}
@@ -207,7 +205,7 @@ export default function AdminDashboard() {
 
           <StatCard
             title="Total Kaarigars"
-            value={kaarigars.length}
+            value={kaarigarCount}
             icon={<Users size={24} />}
             iconClass="bg-purple-100 text-purple-700"
           />
@@ -224,6 +222,13 @@ export default function AdminDashboard() {
             value={`${analytics?.checkedInTickets ?? 0} / ${analytics?.totalTickets ?? 0}`}
             icon={<TicketCheck size={24} />}
             iconClass="bg-green-100 text-green-700"
+          />
+
+          <StatCard
+            title="Seat Capacity"
+            value={`${analytics?.registeredCapacity ?? 0} / ${analytics?.totalCapacity ?? 0} (${analytics?.capacityUtilizationPercent ?? 0}%)`}
+            icon={<Users size={24} />}
+            iconClass="bg-orange-100 text-orange-700"
           />
         </div>
 

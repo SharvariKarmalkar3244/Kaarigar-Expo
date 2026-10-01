@@ -14,6 +14,7 @@ public record EventResponse(
         LocalDate endDate,
         String location,
         String city,
+        String craftType,
         String imageUrl,
         Integer capacity,
         Integer registeredCount,

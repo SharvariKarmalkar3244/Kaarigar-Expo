@@ -7,6 +7,8 @@ import {
   AlertCircle,
   RefreshCw,
   ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import ProfileAvatar from "../../components/ProfileAvatar";
 import WorkImageGallery from "../../components/WorkImageGallery";
@@ -27,15 +29,18 @@ export default function AdminApplications() {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
 
-  const loadData = async () => {
+  const loadData = async (requestedPage = page) => {
     try {
       setLoading(true);
       setError("");
 
       const [appsResponse, eventsResponse] =
         await Promise.all([
-          getPendingApplications(),
+          getPendingApplications({ page: requestedPage, size: 20 }),
           getEvents(),
         ]);
 
@@ -44,6 +49,9 @@ export default function AdminApplications() {
           ? appsResponse
           : appsResponse?.content || []
       );
+      setPage(appsResponse?.number ?? requestedPage);
+      setTotalPages(appsResponse?.totalPages ?? (appsResponse?.length ? 1 : 0));
+      setTotalElements(appsResponse?.totalElements ?? appsResponse?.length ?? 0);
 
       setEvents(
         Array.isArray(eventsResponse)
@@ -103,7 +111,7 @@ export default function AdminApplications() {
         `Application ${status.toLowerCase()} successfully.`
       );
 
-      await loadData();
+      await loadData(applications.length === 1 && page > 0 ? page - 1 : page);
     } catch (err) {
       console.error(
         "Failed to review application:",
@@ -360,6 +368,16 @@ export default function AdminApplications() {
             </div>
           )}
         </div>
+        {!loading && totalPages > 1 && (
+          <div className="mt-4 flex items-center justify-between rounded-xl border border-[#E2D8CB] bg-white px-4 py-3 text-sm text-gray-600">
+            <span>Showing {page * 20 + 1}–{Math.min((page + 1) * 20, totalElements)} of {totalElements}</span>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => loadData(page - 1)} disabled={page === 0} className="inline-flex items-center gap-1 rounded-lg border px-3 py-2 disabled:opacity-50"><ChevronLeft size={16} /> Previous</button>
+              <span className="px-2 py-2">Page {page + 1} of {totalPages}</span>
+              <button type="button" onClick={() => loadData(page + 1)} disabled={page + 1 >= totalPages} className="inline-flex items-center gap-1 rounded-lg border px-3 py-2 disabled:opacity-50">Next <ChevronRight size={16} /></button>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

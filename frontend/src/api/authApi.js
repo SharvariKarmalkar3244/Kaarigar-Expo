@@ -1,7 +1,7 @@
 import apiClient from "./client";
 
-export const getGoogleOAuthUrl = () =>
-  `${import.meta.env.VITE_API_BASE_URL || ""}/oauth2/authorization/google`;
+export const getGoogleOAuthUrl = (role) =>
+  `${import.meta.env.VITE_API_BASE_URL || ""}/api/auth/oauth2/google/start${role ? `?role=${encodeURIComponent(role)}` : ""}`;
 
 export const registerUser = async (data) => {
   const response = await apiClient.post("/api/auth/register", data);

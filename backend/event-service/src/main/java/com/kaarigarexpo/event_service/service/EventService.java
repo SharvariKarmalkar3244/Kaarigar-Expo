@@ -88,6 +88,7 @@ public class EventService {
         event.setEndDate(request.endDate());
         event.setLocation(request.location());
         event.setCity(request.city());
+        event.setCraftType(request.craftType());
         event.setImageUrl(request.imageUrl());
         event.setCapacity(request.capacity());
         event.setRegisteredCount(0);
@@ -108,10 +109,14 @@ public class EventService {
     // =========================
 
     @Cacheable("events")
-    public Page<EventResponse> getEvents(EventStatus status, String city, String query, Pageable pageable) {
+    public Page<EventResponse> getEvents(EventStatus status, String city, String query,
+                                         LocalDate fromDate, LocalDate toDate, String craftType,
+                                         boolean availableOnly, Pageable pageable) {
         String normalizedCity = city == null || city.isBlank() ? null : city.trim();
         String normalizedQuery = query == null || query.isBlank() ? null : query.trim();
-        return eventRepository.searchEvents(status, normalizedCity, normalizedQuery, pageable).map(event -> {
+        String normalizedCraftType = craftType == null || craftType.isBlank() ? null : craftType.trim();
+        return eventRepository.searchEvents(status, normalizedCity, normalizedQuery, fromDate, toDate,
+                normalizedCraftType, availableOnly, pageable).map(event -> {
             EventStatus calculatedStatus = calculateStatus(event);
             if (event.getStatus() != EventStatus.CANCELLED && event.getStatus() != calculatedStatus) {
                 event.setStatus(calculatedStatus);
@@ -146,6 +151,11 @@ public class EventService {
         long ticketCount = entryTicketRepository.count();
         long checkedInCount = entryTicketRepository.countByCheckedInTrue();
         double attendanceRate = ticketCount == 0 ? 0.0 : checkedInCount * 100.0 / ticketCount;
+        List<Event> events = eventRepository.findAll();
+        long totalCapacity = events.stream().mapToLong(event -> event.getCapacity() == null ? 0 : event.getCapacity()).sum();
+        long registeredCapacity = events.stream().mapToLong(event -> event.getRegisteredCount() == null ? 0 : event.getRegisteredCount()).sum();
+        long availableCapacity = Math.max(0, totalCapacity - registeredCapacity);
+        double capacityUtilization = totalCapacity == 0 ? 0.0 : registeredCapacity * 100.0 / totalCapacity;
         return new AdminAnalyticsResponse(
                 eventRepository.count(),
                 eventRepository.countByStatus(EventStatus.UPCOMING),
@@ -154,7 +164,11 @@ public class EventService {
                 eventApplicationRepository.countByStatus(ApplicationStatus.PENDING),
                 ticketCount,
                 checkedInCount,
-                Math.round(attendanceRate * 10.0) / 10.0
+                Math.round(attendanceRate * 10.0) / 10.0,
+                totalCapacity,
+                registeredCapacity,
+                availableCapacity,
+                Math.round(capacityUtilization * 10.0) / 10.0
         );
     }
 
@@ -226,6 +240,7 @@ public class EventService {
         event.setEndDate(request.endDate());
         event.setLocation(request.location());
         event.setCity(request.city());
+        event.setCraftType(request.craftType());
         event.setImageUrl(request.imageUrl());
 
         if (request.capacity() < event.getRegisteredCount()) {
@@ -375,6 +390,7 @@ public class EventService {
                 event.getEndDate(),
                 event.getLocation(),
                 event.getCity(),
+                event.getCraftType(),
                 event.getImageUrl(),
                 capacity,
                 registeredCount,

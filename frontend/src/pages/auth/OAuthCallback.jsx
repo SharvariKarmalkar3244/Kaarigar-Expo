@@ -11,6 +11,7 @@ export default function OAuthCallback() {
 
   useEffect(() => {
     const token = new URLSearchParams(window.location.hash.slice(1)).get("token");
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
     if (!token) {
       showToast("Google sign-in did not complete. Please try again.", "error");
       navigate("/login", { replace: true });

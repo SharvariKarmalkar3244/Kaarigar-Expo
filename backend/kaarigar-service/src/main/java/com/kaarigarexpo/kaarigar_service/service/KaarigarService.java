@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Service
 public class KaarigarService {
@@ -90,6 +92,10 @@ public class KaarigarService {
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
+    }
+
+    public Page<ArtisanProfileResponse> getAllProfiles(Pageable pageable) {
+        return profileRepository.findAll(pageable).map(this::mapToResponse);
     }
 
     public ArtisanProfileResponse getProfileById(Long id) {

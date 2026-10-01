@@ -9,7 +9,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 @RestController
 @RequestMapping("/api/admin/applications")
@@ -31,8 +33,10 @@ public class AdminApplicationController {
 
 
     @GetMapping("/pending")
-    public List<EventApplicationResponse> getPendingApplications(
-            @RequestHeader(value = "X-User-Role", required = false) String role
+    public Page<EventApplicationResponse> getPendingApplications(
+            @RequestHeader(value = "X-User-Role", required = false) String role,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
     ) {
 
         System.out.println("ADMIN ROLE HEADER = " + role);
@@ -45,7 +49,11 @@ public class AdminApplicationController {
             );
         }
 
-        return applicationService.getPendingApplications();
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        return applicationService.getPendingApplications(
+                PageRequest.of(safePage, safeSize, Sort.by("appliedAt").descending())
+        );
     }
 
     // =========================
@@ -57,6 +65,7 @@ public class AdminApplicationController {
     public EventApplicationResponse reviewApplication(
             @PathVariable Long id,
             @RequestHeader(value = "X-User-Role", required = false) String role,
+            @RequestHeader(value = "X-User-Email", required = false) String actorEmail,
             @Valid @RequestBody AdminReviewRequest request
     ) {
 
@@ -71,7 +80,8 @@ public class AdminApplicationController {
         return applicationService.reviewApplication(
                 id,
                 request.status(),
-                request.rejectionReason()
+                request.rejectionReason(),
+                actorEmail
         );
     }
 }

@@ -128,8 +128,8 @@ export default function Register() {
       if (data.role === "KAARIGAR") {
         try {
           const [photoUrl, ...workImageUrls] = await Promise.all([
-            form.profilePhoto ? uploadImage(form.profilePhoto) : Promise.resolve(null),
-            ...Array.from(form.photos || []).slice(0, 10).map(uploadImage),
+            form.profilePhoto ? uploadImage(form.profilePhoto, "profile") : Promise.resolve(null),
+            ...Array.from(form.photos || []).slice(0, 10).map((file) => uploadImage(file, "work")),
           ]);
           await createProfile({
             name: form.name.trim(),
@@ -442,7 +442,7 @@ export default function Register() {
               </p>
             </div>
 
-            <a href={getGoogleOAuthUrl()} className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+            <a href={getGoogleOAuthUrl(form.role)} className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">
               <span className="font-bold text-[#4285F4]">G</span> Continue with Google
             </a>
 

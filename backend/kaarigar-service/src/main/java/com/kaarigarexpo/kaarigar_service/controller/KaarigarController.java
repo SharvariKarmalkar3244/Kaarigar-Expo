@@ -11,6 +11,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 @RestController
 @RequestMapping("/api/kaarigars")
@@ -90,8 +93,10 @@ public class KaarigarController {
     }
 
     @GetMapping
-    public List<ArtisanProfileResponse> getAllProfiles(
-            @RequestHeader("X-User-Role") String role
+    public Page<ArtisanProfileResponse> getAllProfiles(
+            @RequestHeader("X-User-Role") String role,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
     ) {
 
         if (!RoleHeaders.hasRole(role, "ADMIN")) {
@@ -101,7 +106,11 @@ public class KaarigarController {
             );
         }
 
-        return kaarigarService.getAllProfiles();
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        return kaarigarService.getAllProfiles(
+                PageRequest.of(safePage, safeSize, Sort.by("name").ascending())
+        );
     }
 
     @GetMapping("/{id}")

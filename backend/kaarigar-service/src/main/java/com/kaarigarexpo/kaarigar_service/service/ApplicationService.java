@@ -18,6 +18,8 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -103,18 +105,17 @@ public class ApplicationService {
     // ADMIN METHODS
     // =========================================================
 
-    public List<EventApplicationResponse> getPendingApplications() {
+    public Page<EventApplicationResponse> getPendingApplications(Pageable pageable) {
         return applicationRepository
-                .findByStatusOrderByAppliedAtDesc(ApplicationStatus.PENDING)
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
+                .findByStatusOrderByAppliedAtDesc(ApplicationStatus.PENDING, pageable)
+                .map(this::mapToResponse);
     }
 
     public EventApplicationResponse reviewApplication(
             Long applicationId,
             String status,
-            String rejectionReason
+            String rejectionReason,
+            String actorEmail
     ) {
 
         EventApplication application = applicationRepository
@@ -151,6 +152,7 @@ public class ApplicationService {
             );
         }
 
+        ApplicationStatus previousStatus = application.getStatus();
         String previousTicketCode = application.getEntryTicketCode();
         if (applicationStatus == ApplicationStatus.APPROVED) {
             var profile = profileRepository.findByUserId(application.getUserId()).orElse(null);
@@ -167,7 +169,37 @@ public class ApplicationService {
         );
         application.setReviewedAt(LocalDateTime.now());
 
-        return mapToResponse(applicationRepository.save(application));
+        EventApplication savedApplication = applicationRepository.save(application);
+        recordApplicationReview(savedApplication, previousStatus, actorEmail);
+        return mapToResponse(savedApplication);
+    }
+
+    private void recordApplicationReview(EventApplication application, ApplicationStatus previousStatus, String actorEmail) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("X-Internal-Secret", internalServiceSecret);
+            String details = "eventId=" + application.getEventId()
+                    + "; userId=" + application.getUserId()
+                    + "; status=" + previousStatus + " -> " + application.getStatus();
+            restTemplate.exchange(
+                    serviceUrl(eventServiceUrl, "/internal/events/audit"),
+                    HttpMethod.POST,
+                    new HttpEntity<>(Map.of(
+                            "action", "APPLICATION_REVIEWED",
+                            "entityType", "APPLICATION",
+                            "entityId", application.getId(),
+                            "actorEmail", actorEmail == null ? "Admin" : actorEmail,
+                            "details", details
+                    ), headers),
+                    Void.class
+            );
+        } catch (RestClientException exception) {
+            System.getLogger(ApplicationService.class.getName()).log(
+                    System.Logger.Level.WARNING,
+                    "Application review was saved, but its audit entry could not be recorded",
+                    exception
+            );
+        }
     }
 
     // =========================================================

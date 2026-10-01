@@ -30,6 +30,8 @@ public class Event {
 
     private String city;
 
+    private String craftType;
+
     private String imageUrl;
 
     @Column(nullable = false)
@@ -118,6 +120,14 @@ public class Event {
 
     public void setCity(String city) {
         this.city = city;
+    }
+
+    public String getCraftType() {
+        return craftType;
+    }
+
+    public void setCraftType(String craftType) {
+        this.craftType = craftType;
     }
 
     public String getImageUrl() {

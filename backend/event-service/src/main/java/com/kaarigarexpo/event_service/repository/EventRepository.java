@@ -23,14 +23,21 @@ public interface EventRepository extends JpaRepository<Event, Long> {
               OR (:status = com.kaarigarexpo.event_service.entity.EventStatus.UPCOMING AND e.status <> com.kaarigarexpo.event_service.entity.EventStatus.CANCELLED AND e.startDate > CURRENT_DATE)
               OR (:status = com.kaarigarexpo.event_service.entity.EventStatus.ONGOING AND e.status <> com.kaarigarexpo.event_service.entity.EventStatus.CANCELLED AND e.startDate <= CURRENT_DATE AND e.endDate >= CURRENT_DATE)
               OR (:status = com.kaarigarexpo.event_service.entity.EventStatus.COMPLETED AND e.status <> com.kaarigarexpo.event_service.entity.EventStatus.CANCELLED AND e.endDate < CURRENT_DATE))
-              AND (:city IS NULL OR lower(e.city) = lower(:city) OR lower(e.location) = lower(:city))
+              AND (:city IS NULL OR lower(coalesce(e.city, '')) LIKE lower(concat('%', :city, '%'))
+                   OR lower(e.location) LIKE lower(concat('%', :city, '%')))
+              AND (:fromDate IS NULL OR e.startDate >= :fromDate)
+              AND (:toDate IS NULL OR e.startDate <= :toDate)
+              AND (:craftType IS NULL OR lower(coalesce(e.craftType, '')) LIKE lower(concat('%', :craftType, '%')))
+              AND (:availableOnly = false OR e.registeredCount < e.capacity)
               AND (:query IS NULL OR lower(e.title) LIKE lower(concat('%', :query, '%'))
                    OR lower(e.city) LIKE lower(concat('%', :query, '%'))
                    OR lower(e.location) LIKE lower(concat('%', :query, '%'))
                    OR lower(e.description) LIKE lower(concat('%', :query, '%')))
             """)
     Page<Event> searchEvents(@Param("status") EventStatus status, @Param("city") String city,
-                             @Param("query") String query, Pageable pageable);
+                             @Param("query") String query, @Param("fromDate") LocalDate fromDate,
+                             @Param("toDate") LocalDate toDate, @Param("craftType") String craftType,
+                             @Param("availableOnly") boolean availableOnly, Pageable pageable);
 
     List<Event> findByStatusOrderByStartDateAsc(EventStatus status);
 

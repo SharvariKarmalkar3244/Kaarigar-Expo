@@ -1,6 +1,7 @@
 package com.kaarigarexpo.event_service.internal;
 
 import com.kaarigarexpo.event_service.service.EventService;
+import com.kaarigarexpo.event_service.service.AuditLogService;
 import com.kaarigarexpo.event_service.dto.EntryTicketRequest;
 import com.kaarigarexpo.event_service.dto.EntryTicketResponse;
 import jakarta.validation.Valid;
@@ -11,9 +12,11 @@ import org.springframework.web.bind.annotation.*;
 public class InternalEventController {
 
     private final EventService eventService;
+    private final AuditLogService auditLogService;
 
-    public InternalEventController(EventService eventService) {
+    public InternalEventController(EventService eventService, AuditLogService auditLogService) {
         this.eventService = eventService;
+        this.auditLogService = auditLogService;
     }
 
     @PostMapping("/{id}/reserve-slot")
@@ -60,5 +63,12 @@ public class InternalEventController {
         eventService.revokeTicket(ticketCode);
     }
 
+    @PostMapping("/audit")
+    public void recordAudit(@RequestBody AuditRequest request) {
+        auditLogService.record(request.action(), request.entityType(), request.entityId(),
+                request.actorEmail(), request.details());
+    }
+
     record ApplicationRequest(Long kaarigarId) {}
+    record AuditRequest(String action, String entityType, Long entityId, String actorEmail, String details) {}
 }

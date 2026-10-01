@@ -42,6 +42,7 @@ export default function AdminEvents() {
     endDate: "",
     location: "",
     city: "",
+    craftType: "",
     capacity: "",
     imageUrl: "",
   });
@@ -60,7 +61,7 @@ export default function AdminEvents() {
       setLoading(true);
       setError("");
 
-      const response = await getEvents();
+      const response = await getEvents({ page: 0, size: 50, status: "ALL" });
 
       console.log("Admin events:", response);
 
@@ -113,6 +114,7 @@ export default function AdminEvents() {
       endDate: "",
       location: "",
       city: "",
+      craftType: "",
       capacity: "",
       imageUrl: "",
     });
@@ -129,6 +131,7 @@ export default function AdminEvents() {
       endDate: event.endDate || "",
       location: event.location || "",
       city: event.city || "",
+      craftType: event.craftType || "",
       capacity: event.capacity || "",
       imageUrl: event.imageUrl || "",
     });
@@ -145,7 +148,7 @@ export default function AdminEvents() {
         setError("Upload an image for this event before saving.");
         return;
       }
-      const imageUrl = eventImageFile ? await uploadImage(eventImageFile) : formData.imageUrl;
+      const imageUrl = eventImageFile ? await uploadImage(eventImageFile, "event") : formData.imageUrl;
       const eventData = { ...formData, imageUrl };
       if (editingEvent) {
         await updateEvent(editingEvent.id, eventData);
@@ -436,6 +439,17 @@ export default function AdminEvents() {
                     className="w-full rounded-lg border border-[#E2D8CB] px-4 py-2 focus:border-[#B4532D] focus:outline-none"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Craft type</label>
+                <input
+                  type="text"
+                  value={formData.craftType}
+                  onChange={(e) => setFormData({ ...formData, craftType: e.target.value })}
+                  placeholder="For example, pottery or jewelry"
+                  className="w-full rounded-lg border border-[#E2D8CB] px-4 py-2 focus:border-[#B4532D] focus:outline-none"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">

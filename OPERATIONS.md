@@ -16,7 +16,9 @@ Google OAuth continues to require its client ID, secret, and exact public callba
 
 ## Image object storage
 
-The default `MEDIA_STORAGE=database` keeps the existing Postgres media behavior. To store new uploads in an S3-compatible bucket, set:
+For Vercel, configure `BLOB_READ_WRITE_TOKEN` on the frontend service and set `VITE_MEDIA_STORAGE=vercel-blob` for its build. The authenticated upload function issues short-lived, role-limited tokens, and the browser sends image files directly to a public Vercel Blob store. Configure the frontend's internal binding to the Auth service as in `vercel.json`; do not expose the Blob token to browser code.
+
+Local development defaults to the existing Kaarigar media API and database storage. To store uploads on another host in an S3-compatible bucket, set:
 
 - `MEDIA_STORAGE=s3`
 - `S3_BUCKET` and `S3_REGION`
@@ -24,6 +26,12 @@ The default `MEDIA_STORAGE=database` keeps the existing Postgres media behavior.
 - Optional `S3_ENDPOINT` for an S3-compatible provider such as MinIO or an R2 endpoint
 
 Existing image URLs continue to resolve from the database or local upload directory. New uploads use the selected storage backend.
+
+## Automated backups and health checks
+
+The GitHub Actions workflow `.github/workflows/postgres-backup.yml` runs nightly at 02:00 UTC and can also be started manually. Add repository secrets `BACKUP_PGHOST`, `BACKUP_PGPORT`, `BACKUP_PGUSER`, `BACKUP_PGPASSWORD`, and a strong `BACKUP_ENCRYPTION_KEY`. It dumps the four databases, encrypts the archive with GPG/AES-256, and retains the encrypted artifact for 14 days. To use custom database names, set the repository variable `BACKUP_DATABASES` to a comma-separated list. Restore only after decrypting with the same key and reviewing the target database. The database host must allow the GitHub runner to connect; for private networks, use a self-hosted runner in that network.
+
+The `.github/workflows/health-monitor.yml` workflow checks the Auth, Event, Kaarigar, and Visitor health routes every 15 minutes. Set the repository variable `APP_BASE_URL` to the deployed origin. Failed workflow runs provide the monitoring signal through GitHub Actions notifications, subject to each maintainer's GitHub notification settings. These checks verify service reachability; use the hosting provider's database and runtime telemetry for deeper dependency health.
 
 ## Admin analytics, check-in, and audit history
 

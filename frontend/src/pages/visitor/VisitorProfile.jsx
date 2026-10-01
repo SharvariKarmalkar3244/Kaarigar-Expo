@@ -41,7 +41,7 @@ export default function VisitorProfile() {
     event.preventDefault();
     setSaving(true); setError(""); setSuccess("");
     try {
-      const photoUrl = photoFile ? await uploadImage(photoFile) : form.photoUrl;
+      const photoUrl = photoFile ? await uploadImage(photoFile, "profile") : form.photoUrl;
       const payload = { name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), photoUrl };
       const data = profile ? await updateVisitorProfile(payload) : await createVisitorProfile(payload);
       setProfile(data);
