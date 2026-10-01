@@ -3,6 +3,7 @@ package com.kaarigarexpo.kaarigar_service.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
@@ -31,17 +32,30 @@ public class RestTemplateConfig {
             String host = request.getURI().getHost() + ":" + request.getURI().getPort();
             var circuitBreaker = registry.circuitBreaker(host);
             try {
-                return circuitBreaker.executeCheckedSupplier(() -> {
-                    ClientHttpResponse response = execution.execute(request, body);
-                    if (response.getStatusCode().is5xxServerError()) {
-                        int status = response.getStatusCode().value();
-                        response.close();
-                        throw new java.io.IOException("Downstream service returned HTTP " + status + ": " + host);
+                return circuitBreaker.executeSupplier(() -> {
+                    final ClientHttpResponse response;
+                    try {
+                        response = execution.execute(request, body);
+                    } catch (java.io.IOException exception) {
+                        throw new ResourceAccessException("Downstream request failed: " + host, exception);
                     }
-                    return response;
+                    final int status;
+                    try {
+                        if (!response.getStatusCode().is5xxServerError()) {
+                            return response;
+                        }
+                        status = response.getStatusCode().value();
+                    } catch (java.io.IOException exception) {
+                        response.close();
+                        throw new ResourceAccessException("Could not read downstream response: " + host, exception);
+                    }
+                    response.close();
+                    throw new ResourceAccessException(
+                            "Downstream service returned HTTP " + status + ": " + host);
                 });
             } catch (CallNotPermittedException exception) {
-                throw new java.io.IOException("Downstream circuit is open: " + host, exception);
+                throw new ResourceAccessException("Downstream circuit is open: " + host,
+                        new java.io.IOException("Circuit breaker rejected the request", exception));
             }
         });
         return template;

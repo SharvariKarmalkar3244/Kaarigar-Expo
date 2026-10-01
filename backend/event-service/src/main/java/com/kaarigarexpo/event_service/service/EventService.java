@@ -112,9 +112,9 @@ public class EventService {
     public Page<EventResponse> getEvents(EventStatus status, String city, String query,
                                          LocalDate fromDate, LocalDate toDate, String craftType,
                                          boolean availableOnly, Pageable pageable) {
-        String normalizedCity = city == null || city.isBlank() ? null : city.trim();
-        String normalizedQuery = query == null || query.isBlank() ? null : query.trim();
-        String normalizedCraftType = craftType == null || craftType.isBlank() ? null : craftType.trim();
+        String normalizedCity = city == null || city.isBlank() ? "" : city.trim();
+        String normalizedQuery = query == null || query.isBlank() ? "" : query.trim();
+        String normalizedCraftType = craftType == null || craftType.isBlank() ? "" : craftType.trim();
         return eventRepository.searchEvents(status, normalizedCity, normalizedQuery, fromDate, toDate,
                 normalizedCraftType, availableOnly, pageable).map(event -> {
             EventStatus calculatedStatus = calculateStatus(event);
