@@ -1,6 +1,7 @@
 package com.kaarigarexpo.kaarigar_service.controller;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.ObjectProvider;
 import com.kaarigarexpo.kaarigar_service.entity.MediaAsset;
 import com.kaarigarexpo.kaarigar_service.repository.MediaAssetRepository;
 import org.springframework.core.io.Resource;
@@ -22,6 +23,11 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 @RestController
 @RequestMapping("/api/kaarigars/media")
@@ -37,15 +43,21 @@ public class MediaController {
     private final Path storageRoot;
     private final MediaAssetRepository mediaAssetRepository;
     private final long maxUploadSizeBytes;
+    private final S3Client s3Client;
+    private final String s3Bucket;
 
     public MediaController(
             @Value("${media.storage-dir:uploads}") String storageDirectory,
             @Value("${media.max-upload-size-bytes:8388608}") long maxUploadSizeBytes,
-            MediaAssetRepository mediaAssetRepository
+            MediaAssetRepository mediaAssetRepository,
+            ObjectProvider<S3Client> s3Client,
+            @Value("${media.s3.bucket:}") String s3Bucket
     ) {
         this.storageRoot = Path.of(storageDirectory).toAbsolutePath().normalize();
         this.mediaAssetRepository = mediaAssetRepository;
         this.maxUploadSizeBytes = maxUploadSizeBytes;
+        this.s3Client = s3Client.getIfAvailable();
+        this.s3Bucket = s3Bucket;
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -78,9 +90,19 @@ public class MediaController {
 
         String filename = UUID.randomUUID() + extension;
         try {
-            mediaAssetRepository.save(new MediaAsset(filename, contentType, file.getBytes()));
+            byte[] bytes = file.getBytes();
+            if (s3Client != null) {
+                requireS3Bucket();
+                s3Client.putObject(PutObjectRequest.builder().bucket(s3Bucket).key(filename).contentType(contentType).build(), RequestBody.fromBytes(bytes));
+            } else {
+                mediaAssetRepository.save(new MediaAsset(filename, contentType, bytes));
+            }
         } catch (IOException exception) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to read the image", exception);
+        } catch (ResponseStatusException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Unable to store the image", exception);
         }
 
         return new UploadResponse("/api/kaarigars/media/" + filename);
@@ -99,6 +121,22 @@ public class MediaController {
                     .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
                     .cacheControl(CacheControl.maxAge(7, TimeUnit.DAYS).cachePublic())
                     .body(new ByteArrayResource(asset.getData()));
+        }
+
+        if (s3Client != null) {
+            requireS3Bucket();
+            try {
+                var object = s3Client.getObjectAsBytes(GetObjectRequest.builder().bucket(s3Bucket).key(filename).build());
+                String type = object.response().contentType();
+                return ResponseEntity.ok()
+                        .contentType(type == null ? MediaType.APPLICATION_OCTET_STREAM : MediaType.parseMediaType(type))
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
+                        .cacheControl(CacheControl.maxAge(7, TimeUnit.DAYS).cachePublic())
+                        .body(new ByteArrayResource(object.asByteArray()));
+            } catch (S3Exception exception) {
+                if (exception.statusCode() == 404) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Image not found");
+                throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Unable to load the image", exception);
+            }
         }
 
         Path file = storageRoot.resolve(filename).normalize();
@@ -121,4 +159,10 @@ public class MediaController {
     }
 
     public record UploadResponse(String url) {}
+
+    private void requireS3Bucket() {
+        if (s3Bucket == null || s3Bucket.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Object storage is enabled but no bucket is configured");
+        }
+    }
 }

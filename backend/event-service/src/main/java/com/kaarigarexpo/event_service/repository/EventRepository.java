@@ -6,11 +6,31 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
 import java.util.List;
 
 public interface EventRepository extends JpaRepository<Event, Long> {
+
+    long countByStatus(EventStatus status);
+
+    @Query("""
+            SELECT e FROM Event e
+            WHERE (:status IS NULL
+              OR (:status = com.kaarigarexpo.event_service.entity.EventStatus.CANCELLED AND e.status = :status)
+              OR (:status = com.kaarigarexpo.event_service.entity.EventStatus.UPCOMING AND e.status <> com.kaarigarexpo.event_service.entity.EventStatus.CANCELLED AND e.startDate > CURRENT_DATE)
+              OR (:status = com.kaarigarexpo.event_service.entity.EventStatus.ONGOING AND e.status <> com.kaarigarexpo.event_service.entity.EventStatus.CANCELLED AND e.startDate <= CURRENT_DATE AND e.endDate >= CURRENT_DATE)
+              OR (:status = com.kaarigarexpo.event_service.entity.EventStatus.COMPLETED AND e.status <> com.kaarigarexpo.event_service.entity.EventStatus.CANCELLED AND e.endDate < CURRENT_DATE))
+              AND (:city IS NULL OR lower(e.city) = lower(:city) OR lower(e.location) = lower(:city))
+              AND (:query IS NULL OR lower(e.title) LIKE lower(concat('%', :query, '%'))
+                   OR lower(e.city) LIKE lower(concat('%', :query, '%'))
+                   OR lower(e.location) LIKE lower(concat('%', :query, '%'))
+                   OR lower(e.description) LIKE lower(concat('%', :query, '%')))
+            """)
+    Page<Event> searchEvents(@Param("status") EventStatus status, @Param("city") String city,
+                             @Param("query") String query, Pageable pageable);
 
     List<Event> findByStatusOrderByStartDateAsc(EventStatus status);
 

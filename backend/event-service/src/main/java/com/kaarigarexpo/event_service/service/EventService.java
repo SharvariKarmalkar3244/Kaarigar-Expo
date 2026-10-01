@@ -1,6 +1,7 @@
 package com.kaarigarexpo.event_service.service;
 
 import com.kaarigarexpo.event_service.dto.EventParticipantResponse;
+import com.kaarigarexpo.event_service.dto.AdminAnalyticsResponse;
 import com.kaarigarexpo.event_service.dto.EventRequest;
 import com.kaarigarexpo.event_service.dto.EventResponse;
 import com.kaarigarexpo.event_service.dto.EventVisitorResponse;
@@ -9,6 +10,7 @@ import com.kaarigarexpo.event_service.dto.EntryTicketResponse;
 import com.kaarigarexpo.event_service.entity.Event;
 import com.kaarigarexpo.event_service.entity.EventApplication;
 import com.kaarigarexpo.event_service.entity.EventStatus;
+import com.kaarigarexpo.event_service.entity.ApplicationStatus;
 import com.kaarigarexpo.event_service.entity.EntryTicket;
 import com.kaarigarexpo.event_service.exception.CapacityFullException;
 import com.kaarigarexpo.event_service.exception.EventNotFoundException;
@@ -22,6 +24,10 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -69,6 +75,7 @@ public class EventService {
     // CREATE
     // =========================
 
+    @CacheEvict(cacheNames = {"events", "event"}, allEntries = true)
     public EventResponse createEvent(EventRequest request) {
 
         validateDates(request);
@@ -100,6 +107,20 @@ public class EventService {
     // GET ALL
     // =========================
 
+    @Cacheable("events")
+    public Page<EventResponse> getEvents(EventStatus status, String city, String query, Pageable pageable) {
+        String normalizedCity = city == null || city.isBlank() ? null : city.trim();
+        String normalizedQuery = query == null || query.isBlank() ? null : query.trim();
+        return eventRepository.searchEvents(status, normalizedCity, normalizedQuery, pageable).map(event -> {
+            EventStatus calculatedStatus = calculateStatus(event);
+            if (event.getStatus() != EventStatus.CANCELLED && event.getStatus() != calculatedStatus) {
+                event.setStatus(calculatedStatus);
+                eventRepository.save(event);
+            }
+            return mapToResponse(event);
+        });
+    }
+
     public List<EventResponse> getAllEvents() {
 
         return eventRepository.findAll()
@@ -121,10 +142,27 @@ public class EventService {
                 .toList();
     }
 
+    public AdminAnalyticsResponse getAdminAnalytics() {
+        long ticketCount = entryTicketRepository.count();
+        long checkedInCount = entryTicketRepository.countByCheckedInTrue();
+        double attendanceRate = ticketCount == 0 ? 0.0 : checkedInCount * 100.0 / ticketCount;
+        return new AdminAnalyticsResponse(
+                eventRepository.count(),
+                eventRepository.countByStatus(EventStatus.UPCOMING),
+                eventRepository.countByStatus(EventStatus.ONGOING),
+                eventApplicationRepository.count(),
+                eventApplicationRepository.countByStatus(ApplicationStatus.PENDING),
+                ticketCount,
+                checkedInCount,
+                Math.round(attendanceRate * 10.0) / 10.0
+        );
+    }
+
     // =========================
     // GET UPCOMING
     // =========================
 
+    @Cacheable("events")
     public List<EventResponse> getUpcomingEvents() {
 
         return eventRepository.findAll()
@@ -151,6 +189,7 @@ public class EventService {
     // GET BY ID
     // =========================
 
+    @Cacheable(cacheNames = "event", key = "#id")
     public EventResponse getEventById(Long id) {
 
         Event event = findEvent(id);
@@ -171,6 +210,7 @@ public class EventService {
     // UPDATE
     // =========================
 
+    @CacheEvict(cacheNames = {"events", "event"}, allEntries = true)
     public EventResponse updateEvent(
             Long id,
             EventRequest request
@@ -209,6 +249,7 @@ public class EventService {
     // DELETE
     // =========================
 
+    @CacheEvict(cacheNames = {"events", "event"}, allEntries = true)
     public void deleteEvent(Long id) {
 
         Event event = findEvent(id);
@@ -221,6 +262,7 @@ public class EventService {
     // =========================
 
     @Transactional
+    @CacheEvict(cacheNames = {"events", "event"}, allEntries = true)
     public void reserveSlot(Long eventId) {
 
         Event event = findEvent(eventId);
@@ -264,6 +306,7 @@ public class EventService {
     // =========================
 
     @Transactional
+    @CacheEvict(cacheNames = {"events", "event"}, allEntries = true)
     public void releaseSlot(Long eventId) {
 
         eventRepository.releaseSlot(eventId);

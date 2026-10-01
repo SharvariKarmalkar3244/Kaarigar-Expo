@@ -68,6 +68,14 @@
 
   "rewrites": [
     {
+      "source": "/oauth2/(.*)",
+      "destination": { "service": "auth_service" }
+    },
+    {
+      "source": "/login/oauth2/(.*)",
+      "destination": { "service": "auth_service" }
+    },
+    {
       "source": "/api/(.*)",
       "destination": {
         "service": "api_gateway"

@@ -33,10 +33,17 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import AccountMenu from "./components/AccountMenu";
 import Profile from "./pages/Profile";
 import AdminCheckIn from "./pages/admin/AdminCheckIn";
+import ToastViewport from "./components/ToastViewport";
+import OAuthCallback from "./pages/auth/OAuthCallback";
+import VerifyEmail from "./pages/auth/VerifyEmail";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
 
 function App() {
   return (
     <BrowserRouter>
+
+      <ToastViewport />
 
       <AuthProvider>
 
@@ -62,6 +69,11 @@ function App() {
             path="/register"
             element={<Register />}
           />
+
+          <Route path="/oauth/callback" element={<OAuthCallback />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           <Route
             path="/events"

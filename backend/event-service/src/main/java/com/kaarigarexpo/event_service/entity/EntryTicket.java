@@ -3,6 +3,7 @@ package com.kaarigarexpo.event_service.entity;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Entity
 @Table(
@@ -39,6 +40,7 @@ public class EntryTicket {
 
     private LocalDateTime issuedAt;
     private LocalDateTime checkedInAt;
+    private LocalDate reminderSentFor;
 
     @PrePersist
     void onCreate() {
@@ -65,4 +67,6 @@ public class EntryTicket {
     public LocalDateTime getIssuedAt() { return issuedAt; }
     public LocalDateTime getCheckedInAt() { return checkedInAt; }
     public void setCheckedInAt(LocalDateTime checkedInAt) { this.checkedInAt = checkedInAt; }
+    public LocalDate getReminderSentFor() { return reminderSentFor; }
+    public void setReminderSentFor(LocalDate reminderSentFor) { this.reminderSentFor = reminderSentFor; }
 }

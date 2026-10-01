@@ -5,6 +5,8 @@ import { uploadImage } from "../../api/mediaApi";
 import { useNavigate, Link } from "react-router-dom";
 import { X, Loader2, AlertCircle } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { showToast } from "../../utils/toast";
+import { getGoogleOAuthUrl } from "../../api/authApi";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -121,6 +123,7 @@ export default function Register() {
       const data = await registerUser(registrationData);
       const session = await loginUser({ email: registrationData.email, password: form.password });
       login(session);
+      showToast("Account created. Check your inbox for the email verification link.", "success");
 
       if (data.role === "KAARIGAR") {
         try {
@@ -438,6 +441,10 @@ export default function Register() {
                 Join Kaarigar Expo to explore upcoming events and artisans
               </p>
             </div>
+
+            <a href={getGoogleOAuthUrl()} className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+              <span className="font-bold text-[#4285F4]">G</span> Continue with Google
+            </a>
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
               {/* Account Type */}

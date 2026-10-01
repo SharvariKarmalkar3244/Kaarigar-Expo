@@ -3,6 +3,8 @@ import { loginUser } from "../../api/authApi";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { X, Loader2, AlertCircle } from "lucide-react";
+import { showToast } from "../../utils/toast";
+import { getGoogleOAuthUrl } from "../../api/authApi";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -33,6 +35,7 @@ export default function Login() {
       const data = await loginUser(form);
 
       login(data);
+      showToast("Welcome back!", "success");
 
       if (data.role === "ADMIN") {
         navigate("/admin");
@@ -96,6 +99,9 @@ export default function Login() {
         )}
 
         {/* Form Inputs */}
+        <a href={getGoogleOAuthUrl()} className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+          <span className="font-bold text-[#4285F4]">G</span> Continue with Google
+        </a>
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
             <label className="mb-1.5 block text-xs font-semibold text-gray-700">
@@ -125,6 +131,10 @@ export default function Login() {
               required
               className="w-full rounded-xl border border-gray-200 bg-[#FDFBF7] p-3 text-sm text-[#2B2118] transition-colors focus:border-[#8B3A1B] focus:bg-white focus:outline-none"
             />
+          </div>
+
+          <div className="-mt-2 text-right">
+            <Link to="/forgot-password" className="text-xs font-semibold text-[#8B3A1B] hover:underline">Forgot password?</Link>
           </div>
 
           <button

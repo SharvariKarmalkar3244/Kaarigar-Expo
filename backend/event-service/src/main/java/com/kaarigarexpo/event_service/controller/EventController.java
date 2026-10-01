@@ -1,14 +1,20 @@
 package com.kaarigarexpo.event_service.controller;
 
 import com.kaarigarexpo.event_service.dto.EventParticipantResponse;
+import com.kaarigarexpo.event_service.dto.AdminAnalyticsResponse;
 import com.kaarigarexpo.event_service.dto.EventRequest;
 import com.kaarigarexpo.event_service.dto.EventResponse;
 import com.kaarigarexpo.event_service.dto.EventVisitorResponse;
 import com.kaarigarexpo.event_service.dto.EntryTicketResponse;
 import com.kaarigarexpo.event_service.dto.TicketVerificationRequest;
+import com.kaarigarexpo.event_service.entity.EventStatus;
 import com.kaarigarexpo.event_service.service.EventService;
+import com.kaarigarexpo.event_service.service.AuditLogService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -19,9 +25,11 @@ import java.util.List;
 public class EventController {
 
     private final EventService eventService;
+    private final AuditLogService auditLogService;
 
-    public EventController(EventService eventService) {
+    public EventController(EventService eventService, AuditLogService auditLogService) {
         this.eventService = eventService;
+        this.auditLogService = auditLogService;
     }
 
     // =========================
@@ -41,10 +49,13 @@ public class EventController {
     @ResponseStatus(HttpStatus.CREATED)
     public EventResponse createEvent(
             @RequestHeader(value = "X-User-Role", required = false) String role,
+            @RequestHeader(value = "X-User-Email", required = false) String actor,
             @Valid @RequestBody EventRequest request
     ) {
         requireAdmin(role);
-        return eventService.createEvent(request);
+        EventResponse created = eventService.createEvent(request);
+        auditLogService.record("EVENT_CREATED", "EVENT", created.id(), actor, created.title());
+        return created;
     }
 
     // =========================
@@ -52,8 +63,37 @@ public class EventController {
     // =========================
 
     @GetMapping
-    public List<EventResponse> getAllEvents() {
-        return eventService.getAllEvents();
+    public Page<EventResponse> getAllEvents(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "9") int size,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false, name = "q") String query
+    ) {
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(Math.max(size, 1), 50);
+        EventStatus eventStatus = status == null || status.isBlank() || "ALL".equalsIgnoreCase(status)
+                ? null : EventStatus.valueOf(status.trim().toUpperCase());
+        return eventService.getEvents(eventStatus, city, query,
+                PageRequest.of(safePage, safeSize, Sort.by("startDate").ascending()));
+    }
+
+    @GetMapping("/admin/analytics")
+    public AdminAnalyticsResponse getAdminAnalytics(
+            @RequestHeader(value = "X-User-Role", required = false) String role
+    ) {
+        requireAdmin(role);
+        return eventService.getAdminAnalytics();
+    }
+
+    @GetMapping("/admin/audit")
+    public Page<com.kaarigarexpo.event_service.entity.AuditLog> getAuditLog(
+            @RequestHeader(value = "X-User-Role", required = false) String role,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "25") int size
+    ) {
+        requireAdmin(role);
+        return auditLogService.recent(page, size);
     }
 
     // =========================
@@ -84,10 +124,13 @@ public class EventController {
     public EventResponse updateEvent(
             @PathVariable Long id,
             @RequestHeader(value = "X-User-Role", required = false) String role,
+            @RequestHeader(value = "X-User-Email", required = false) String actor,
             @Valid @RequestBody EventRequest request
     ) {
         requireAdmin(role);
-        return eventService.updateEvent(id, request);
+        EventResponse updated = eventService.updateEvent(id, request);
+        auditLogService.record("EVENT_UPDATED", "EVENT", id, actor, updated.title());
+        return updated;
     }
 
     // =========================
@@ -98,10 +141,12 @@ public class EventController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteEvent(
             @PathVariable Long id,
-            @RequestHeader(value = "X-User-Role", required = false) String role
+            @RequestHeader(value = "X-User-Role", required = false) String role,
+            @RequestHeader(value = "X-User-Email", required = false) String actor
     ) {
         requireAdmin(role);
         eventService.deleteEvent(id);
+        auditLogService.record("EVENT_DELETED", "EVENT", id, actor, null);
     }
 
     // =========================
@@ -131,10 +176,14 @@ public class EventController {
     @PostMapping("/tickets/verify")
     public EntryTicketResponse verifyTicket(
             @RequestHeader(value = "X-User-Role", required = false) String role,
+            @RequestHeader(value = "X-User-Email", required = false) String actor,
             @Valid @RequestBody TicketVerificationRequest request
     ) {
         requireAdmin(role);
-        return eventService.verifyTicket(request.ticketCode(), request.eventId());
+        EntryTicketResponse verified = eventService.verifyTicket(request.ticketCode(), request.eventId());
+        auditLogService.record(verified.alreadyCheckedIn() ? "DUPLICATE_SCAN" : "TICKET_CHECKED_IN",
+                "ENTRY_TICKET", verified.id(), actor, "eventId=" + request.eventId() + "; ticketCode=" + request.ticketCode());
+        return verified;
     }
 
     @GetMapping("/{id}/tickets")

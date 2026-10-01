@@ -21,8 +21,14 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false)
+    @Column
     private String password;
+
+    @Column(name = "google_subject", unique = true)
+    private String googleSubject;
+
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private boolean emailVerified = true;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -36,6 +42,11 @@ public class User {
         this.email = email;
         this.password = password;
         this.role = role;
+    }
+
+    public User(String name, String email, String password, Role role, String googleSubject) {
+        this(name, email, password, role);
+        this.googleSubject = googleSubject;
     }
 
     public Long getId() {
@@ -65,6 +76,14 @@ public class User {
     public void setPassword(String password) {
         this.password = password;
     }
+
+    public String getGoogleSubject() { return googleSubject; }
+
+    public void setGoogleSubject(String googleSubject) { this.googleSubject = googleSubject; }
+
+    public boolean isEmailVerified() { return emailVerified; }
+
+    public void setEmailVerified(boolean emailVerified) { this.emailVerified = emailVerified; }
 
     public Role getRole() {
         return role;

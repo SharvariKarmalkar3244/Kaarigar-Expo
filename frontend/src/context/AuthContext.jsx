@@ -1,6 +1,7 @@
 import {
   createContext,
   useContext,
+  useCallback,
   useEffect,
   useState,
 } from "react";
@@ -19,14 +20,13 @@ export function AuthProvider({ children }) {
       : null;
   });
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => Boolean(localStorage.getItem("token")));
 
   useEffect(() => {
 
     const token = localStorage.getItem("token");
 
     if (!token) {
-      setLoading(false);
       return;
     }
 
@@ -39,7 +39,9 @@ export function AuthProvider({ children }) {
         );
       })
       .catch(() => {
-        logout();
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        setUser(null);
       })
       .finally(() => {
         setLoading(false);
@@ -47,7 +49,7 @@ export function AuthProvider({ children }) {
 
   }, []);
 
-  const login = (data) => {
+  const login = useCallback((data) => {
 
     localStorage.setItem(
       "token",
@@ -60,15 +62,15 @@ export function AuthProvider({ children }) {
     );
 
     setUser(data);
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
 
     localStorage.removeItem("token");
     localStorage.removeItem("user");
 
     setUser(null);
-  };
+  }, []);
 
   return (
     <AuthContext.Provider
@@ -85,6 +87,8 @@ export function AuthProvider({ children }) {
   );
 }
 
+// The context hook is intentionally exported alongside its provider.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   return useContext(AuthContext);
 }

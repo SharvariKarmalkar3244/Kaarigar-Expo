@@ -11,10 +11,11 @@ import {
   RefreshCw,
   LayoutDashboard,
   CalendarRange,
+  TicketCheck,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
-import { getEvents } from "../../api/eventApi";
+import { getAuditLog, getEventAnalytics, getEvents } from "../../api/eventApi";
 import {
   getAllKaarigars,
   getPendingApplications,
@@ -24,6 +25,8 @@ export default function AdminDashboard() {
   const [events, setEvents] = useState([]);
   const [kaarigars, setKaarigars] = useState([]);
   const [applications, setApplications] = useState([]);
+  const [analytics, setAnalytics] = useState(null);
+  const [auditRows, setAuditRows] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -37,11 +40,18 @@ export default function AdminDashboard() {
         eventsResponse,
         kaarigarsResponse,
         applicationsResponse,
+        analyticsResponse,
+        auditResponse,
       ] = await Promise.all([
-        getEvents(),
+        getEvents({ page: 0, size: 9 }),
         getAllKaarigars(),
         getPendingApplications(),
+        getEventAnalytics(),
+        getAuditLog(),
       ]);
+
+      setAnalytics(analyticsResponse);
+      setAuditRows(auditResponse?.content || []);
 
       setEvents(
         Array.isArray(eventsResponse)
@@ -76,7 +86,10 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    loadDashboard();
+    const timer = window.setTimeout(() => {
+      void loadDashboard();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   return (
@@ -184,10 +197,10 @@ export default function AdminDashboard() {
         )}
 
         {/* Statistics */}
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
             title="Total Events"
-            value={events.length}
+            value={analytics?.totalEvents ?? events.length}
             icon={<CalendarDays size={24} />}
             iconClass="bg-blue-100 text-blue-700"
           />
@@ -201,11 +214,23 @@ export default function AdminDashboard() {
 
           <StatCard
             title="Pending Applications"
-            value={applications.length}
+            value={analytics?.pendingApplications ?? applications.length}
             icon={<Clock3 size={24} />}
             iconClass="bg-yellow-100 text-yellow-700"
           />
+
+          <StatCard
+            title="Attendees Checked In"
+            value={`${analytics?.checkedInTickets ?? 0} / ${analytics?.totalTickets ?? 0}`}
+            icon={<TicketCheck size={24} />}
+            iconClass="bg-green-100 text-green-700"
+          />
         </div>
+
+        <section className="mt-8 overflow-hidden rounded-xl border border-[#E2D6C7] bg-white shadow-sm">
+          <div className="border-b border-[#E2D6C7] px-5 py-4"><h2 className="font-bold">Recent activity</h2><p className="mt-1 text-xs text-[#5B6B82]">Event changes and ticket scans recorded for accountability.</p></div>
+          {auditRows.length === 0 ? <p className="px-5 py-8 text-sm text-gray-500">No audited activity yet.</p> : <div className="overflow-x-auto"><table className="w-full min-w-[640px] text-left text-sm"><thead className="bg-[#F8F3EA] text-xs"><tr><th className="px-5 py-3">Action</th><th className="px-5 py-3">Actor</th><th className="px-5 py-3">Details</th><th className="px-5 py-3">When</th></tr></thead><tbody>{auditRows.map((row) => <tr key={row.id} className="border-t border-gray-100"><td className="px-5 py-3 font-semibold">{row.action}</td><td className="px-5 py-3">{row.actorEmail || "Admin"}</td><td className="max-w-[260px] truncate px-5 py-3">{row.details || `${row.entityType} #${row.entityId}`}</td><td className="px-5 py-3 text-gray-600">{new Date(row.occurredAt).toLocaleString()}</td></tr>)}</tbody></table></div>}
+        </section>
 
         {/* Pending applications */}
         <section className="mt-8 overflow-hidden rounded-xl border border-[#E2D6C7] bg-white shadow-sm">

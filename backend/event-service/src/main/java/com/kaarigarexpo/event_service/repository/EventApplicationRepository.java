@@ -42,6 +42,8 @@ public interface EventApplicationRepository
     // Count applications for an event
     long countByEventId(Long eventId);
 
+    long countByStatus(ApplicationStatus status);
+
     // Count applications by status for an event
     long countByEventIdAndStatus(
             Long eventId,

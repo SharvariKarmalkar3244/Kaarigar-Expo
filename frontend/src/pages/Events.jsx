@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Search,
@@ -17,8 +17,11 @@ export default function Events() {
   const { isAuthenticated } = useAuth();
   const [events, setEvents] = useState([]);
   const [search, setSearch] = useState("");
+  const [submittedSearch, setSubmittedSearch] = useState("");
   const [city, setCity] = useState("ALL");
   const [status, setStatus] = useState("UPCOMING");
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -26,17 +29,19 @@ export default function Events() {
   // --------------------------------------------------
   // Load Events
   // --------------------------------------------------
-  const loadEvents = async () => {
+  const loadEvents = useCallback(async (pageNumber = page) => {
     try {
       setLoading(true);
       setError("");
 
-      const data = await getEvents();
+      const data = await getEvents({ page: pageNumber, size: 9, status, city: city === "ALL" ? undefined : city, q: submittedSearch || undefined });
 
-      if (Array.isArray(data)) {
-        setEvents(data);
-      } else if (Array.isArray(data?.content)) {
+      if (Array.isArray(data?.content)) {
         setEvents(data.content);
+        setTotalPages(data.totalPages || 0);
+      } else if (Array.isArray(data)) {
+        setEvents(data);
+        setTotalPages(1);
       } else if (Array.isArray(data?.data)) {
         setEvents(data.data);
       } else {
@@ -54,11 +59,12 @@ export default function Events() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [city, page, status, submittedSearch]);
 
   useEffect(() => {
-    loadEvents();
-  }, []);
+    const timer = window.setTimeout(() => loadEvents(page), 0);
+    return () => window.clearTimeout(timer);
+  }, [loadEvents, page]);
 
   // --------------------------------------------------
   // Cities List
@@ -74,26 +80,7 @@ export default function Events() {
   // --------------------------------------------------
   // Filter Events
   // --------------------------------------------------
-  const filteredEvents = events.filter((event) => {
-    const searchText = search.toLowerCase();
-
-    const matchesSearch =
-      `${event.title || ""} ${event.city || ""} ${event.location || ""} ${
-        event.description || ""
-      }`
-        .toLowerCase()
-        .includes(searchText);
-
-    const matchesCity =
-      city === "ALL" || event.city === city || event.location === city;
-
-    const eventStatus = (event.status || "UPCOMING").toUpperCase();
-
-    const matchesStatus =
-      status === "ALL" || eventStatus === status.toUpperCase();
-
-    return matchesSearch && matchesCity && matchesStatus;
-  });
+  const filteredEvents = events;
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-[#2B2118]">
@@ -159,7 +146,7 @@ export default function Events() {
             </div>
 
             <button
-              onClick={loadEvents}
+              onClick={() => { setPage(0); setSubmittedSearch(search.trim()); }}
               className="rounded-full bg-[#8B3A1B] px-7 py-2.5 text-sm font-medium text-white transition hover:bg-[#722F15]"
             >
               Search
@@ -172,7 +159,7 @@ export default function Events() {
               <span>Filter City:</span>
               <select
                 value={city}
-                onChange={(e) => setCity(e.target.value)}
+                onChange={(e) => { setCity(e.target.value); setPage(0); }}
                 className="rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs focus:outline-none"
               >
                 {cities.map((c) => (
@@ -187,7 +174,7 @@ export default function Events() {
               <span>Status:</span>
               <select
                 value={status}
-                onChange={(e) => setStatus(e.target.value)}
+                onChange={(e) => { setStatus(e.target.value); setPage(0); }}
                 className="rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs focus:outline-none"
               >
                 <option value="UPCOMING">Upcoming Only</option>
@@ -232,6 +219,16 @@ export default function Events() {
               </div>
             </div>
           </div>
+        )}
+
+        {!loading && totalPages > 1 && (
+          <nav className="mt-8 flex items-center justify-center gap-4" aria-label="Event pages">
+            <button onClick={() => setPage((current) => Math.max(0, current - 1))} disabled={page === 0}
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm disabled:opacity-40">Previous</button>
+            <span className="text-sm text-gray-600">Page {page + 1} of {totalPages}</span>
+            <button onClick={() => setPage((current) => Math.min(totalPages - 1, current + 1))} disabled={page + 1 >= totalPages}
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm disabled:opacity-40">Next</button>
+          </nav>
         )}
 
         {/* Loading / Empty / Grid States */}

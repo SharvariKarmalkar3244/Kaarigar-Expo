@@ -4,6 +4,8 @@ import com.kaarigarexpo.auth_service.dto.LoginRequest;
 import com.kaarigarexpo.auth_service.dto.LoginResponse;
 import com.kaarigarexpo.auth_service.dto.RegisterRequest;
 import com.kaarigarexpo.auth_service.dto.RegisterResponse;
+import com.kaarigarexpo.auth_service.dto.ActionTokenRequest;
+import com.kaarigarexpo.auth_service.dto.PasswordResetRequest;
 import com.kaarigarexpo.auth_service.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -40,6 +42,30 @@ public class AuthController {
     ) {
         return authService.login(request);
     }
+
+    @PostMapping("/verify-email")
+    public Map<String, String> verifyEmail(@Valid @RequestBody ActionTokenRequest request) {
+        authService.verifyEmail(request.token());
+        return Map.of("message", "Email verified successfully");
+    }
+
+    @PostMapping("/verification/resend")
+    public Map<String, String> resendVerification(org.springframework.security.core.Authentication authentication) {
+        authService.resendVerification(authentication.getName());
+        return Map.of("message", "If verification is needed, a new email link has been sent.");
+    }
+
+    @PostMapping("/password-reset/request")
+    public Map<String, String> requestPasswordReset(@RequestBody Map<String, String> request) {
+        authService.requestPasswordReset(request.getOrDefault("email", ""));
+        return Map.of("message", "If an account exists for that email, a reset link has been sent.");
+    }
+
+    @PostMapping("/password-reset/confirm")
+    public Map<String, String> resetPassword(@Valid @RequestBody PasswordResetRequest request) {
+        authService.resetPassword(request.token(), request.password());
+        return Map.of("message", "Password reset successfully");
+    }
     @GetMapping("/me")
     public Map<String, Object> me(
             org.springframework.security.core.Authentication authentication
@@ -49,7 +75,8 @@ public class AuthController {
                 "userId", claims.get("userId"),
                 "name", claims.get("name"),
                 "email", authentication.getName(),
-                "role", claims.get("role")
+                "role", claims.get("role"),
+                "emailVerified", Boolean.TRUE.equals(claims.get("emailVerified", Boolean.class))
         );
     }
 }

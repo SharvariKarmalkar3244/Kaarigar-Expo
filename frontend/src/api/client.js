@@ -1,4 +1,5 @@
 import axios from "axios";
+import { showToast } from "../utils/toast";
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
@@ -18,6 +19,16 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (!error.config?.skipGlobalErrorToast && (!error.response || error.response.status >= 500)) {
+      showToast(error.response?.data?.message || "The service is temporarily unavailable. Please try again.", "error");
+    }
+    return Promise.reject(error);
+  }
 );
 
 export default apiClient;

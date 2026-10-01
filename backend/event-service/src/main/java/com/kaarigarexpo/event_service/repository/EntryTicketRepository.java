@@ -11,8 +11,13 @@ import java.util.List;
 import java.util.Optional;
 
 public interface EntryTicketRepository extends JpaRepository<EntryTicket, Long> {
+    long countByCheckedInTrue();
     Optional<EntryTicket> findByEventIdAndUserIdAndAttendeeType(Long eventId, Long userId, String attendeeType);
     List<EntryTicket> findByEventIdOrderByIssuedAtDesc(Long eventId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select ticket from EntryTicket ticket where ticket.eventId = :eventId")
+    List<EntryTicket> findByEventIdForReminder(@Param("eventId") Long eventId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select ticket from EntryTicket ticket where ticket.ticketCode = :code")
